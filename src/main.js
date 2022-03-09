@@ -86,7 +86,6 @@ const shuf = (arr) => {
 
 const hasMetMap = {}
 const initHasMetMap = (emails) => {
-  console.log(emails);
   emails.forEach((email) => {
     hasMetMap[email] = [];
   })
@@ -105,14 +104,13 @@ const getMatches = (shuffled) => {
 
   shuffleOne.forEach((email, idx) => {
     const isSelf = email === shuffleTwo[idx];
-    const alreadyMet = hasMetMap[email].includes(shuffleTwo[idx])
 
-    if (isSelf || alreadyMet) {
+    if (isSelf) {
       validMatches = false
     }
   })
 
-  return validMatches ? { shuffleOne, shuffleTwo } : getMatches(shuffled);
+  return validMatches ? [ shuffleOne, shuffleTwo ] : getMatches(shuffled);
 }
 
 const logMatch = (listOne, listTwo) => {
@@ -127,30 +125,34 @@ const logMatch = (listOne, listTwo) => {
 async function generateMatches(auth, params) {
   const { emails } = params
   initHasMetMap(emails)
-
   const shuffled = shuf(emails.slice());
-  const { shuffleOne, shuffleTwo } = getMatches(shuffled);
+  recursiveShuffle(shuffled)
+  console.log(hasMetMap);
+}
 
-  // add to already met list
-  logMatch(shuffleOne, shuffleTwo);
+const recursiveShuffle = (list) => {
+  if (list.length === 0) {
+    return []
+  }
 
+  const [ subOne, subTwo ] = getMatches(list);
+  logMatch(subOne, subTwo);
+  rotateMatch(subOne, subTwo);
+}
+
+const rotateMatch = (shuffleOne, shuffleTwo) => {
+  if (shuffleOne.length === 0 || shuffleTwo.length === 0) {
+    return
+  }
   const listOne = shuffleOne.slice();
   const listTwo = shuffleTwo.slice();
 
-  // rotate list two
-  for (let i=0; i < listTwo.length - 1; i++) {
+  for (let i=0; i < listTwo.length; i++) {
     listTwo.push(listTwo.shift());
     logMatch(listOne, listTwo);
-    logMatch(shuffleTwo, listTwo);
   }
-
-  // rotate list one
-  for (let i=0; i < listOne.length - 1; i++) {
-    listOne.push(listOne.shift());
-    logMatch(shuffleOne, listOne);
-  }
-
-  console.log(hasMetMap);
+  rotateMatch(listOne.slice(0, listOne.length / 2), listOne.slice(listOne.length / 2, listOne.length))
+  rotateMatch(listTwo.slice(0, listTwo.length / 2), listTwo.slice(listTwo.length / 2, listTwo.length))
 }
 
 const processCsv = (input) => {
